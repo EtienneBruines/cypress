@@ -6,6 +6,10 @@ import { Command } from 'marionette-client/lib/marionette/message.js'
 import util from 'util'
 import Foxdriver from '@benmalka/foxdriver'
 import protocol from './protocol'
+import la from 'lazy-ass'
+import { CdpAutomation } from './cdp_automation'
+import check from 'check-more-types'
+import * as CriClient from './cri-client'
 
 const errors = require('../errors')
 
@@ -73,6 +77,22 @@ const attachToTabMemory = Bluebird.method((tab) => {
     return tab.memory.attach()
   })
 })
+
+// After the browser has been opened, we can connect to
+// its remote interface via a websocket.
+const _connectToChromeRemoteInterface = function (port, onError) {
+  // @ts-ignore
+  la(check.userPort(port), 'expected port number to connect CRI to', port)
+
+  debug('connecting to Chrome remote interface at random port %d', port)
+
+  return protocol.getWsTargetFor(port)
+  .then((wsUrl) => {
+    debug('received wsUrl %s for port %d', wsUrl, port)
+
+    return CriClient.create(wsUrl, onError)
+  })
+}
 
 const logGcDetails = () => {
   const reducedTimings = {
@@ -143,10 +163,13 @@ export default {
     url,
     marionettePort,
     foxdriverPort,
+    cdpPort,
+    automation,
   }) {
     return Bluebird.all([
       this.setupFoxdriver(foxdriverPort),
       this.setupMarionette(extensions, url, marionettePort),
+      this.setupCDP(cdpPort, automation).catch(() => {}), // CDP is optional
     ])
   },
 
@@ -277,5 +300,25 @@ export default {
 
     // even though Marionette is not used past this point, we have to keep the session open
     // or else `acceptInsecureCerts` will cease to apply and SSL validation prompts will appear.
+  },
+
+  async setupCDP (port, automation) {
+    // SECOND connect to the Chrome remote interface
+    // and when the connection is ready
+    // navigate to the actual url
+    const criClient = await _connectToChromeRemoteInterface(port, (err) => {
+      throw new Error(`Unable to connect to CRI: ${err.toString()}`)
+    })
+
+    la(criClient, 'expected Chrome remote interface reference', criClient)
+
+    await criClient.ensureMinimumProtocolVersion('1.3')
+    .catch((err) => {
+      throw new Error(`Firefox requires at least Firefox 78.\n\nDetails:\n${err.message}`)
+    })
+
+    automation.use(
+      CdpAutomation(criClient.send),
+    )
   },
 }

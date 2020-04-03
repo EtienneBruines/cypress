@@ -283,7 +283,9 @@ const defaultPreferences = {
   'media.getusermedia.insecure.enabled': true,
 }
 
-export async function open (browser: Browser, url, options: any = {}) {
+export async function open (browser: Browser, url, options: any = {}, automation) {
+  const cdpPort = await getPort()
+
   const defaultLaunchOptions = utils.getDefaultLaunchOptions({
     extensions: [] as string[],
     preferences: _.extend({}, defaultPreferences),
@@ -293,6 +295,8 @@ export async function open (browser: Browser, url, options: any = {}) {
       '-foreground',
       '-start-debugger-server', // uses the port+host defined in devtools.debugger.remote
       '-no-remote', // @see https://github.com/cypress-io/cypress/issues/6380
+      '-remote-debugging-address=127.0.0.1',
+      `-remote-debugging-port=${cdpPort}`,
     ],
   })
 
@@ -410,7 +414,7 @@ export async function open (browser: Browser, url, options: any = {}) {
 
   const browserInstance = await utils.launch(browser, 'about:blank', launchOptions.args)
 
-  await firefoxUtil.setup({ extensions: launchOptions.extensions, url, foxdriverPort, marionettePort })
+  await firefoxUtil.setup({ extensions: launchOptions.extensions, url, foxdriverPort, marionettePort, cdpPort, automation })
 
   return browserInstance
 }

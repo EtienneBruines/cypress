@@ -35,7 +35,7 @@ function convertSameSiteCdpToExtension (str: cdp.Network.CookieSameSite): chrome
 // https://developer.chrome.com/extensions/cookies#method-getAll
 type CyCookieFilter = chrome.cookies.GetAllDetails
 
-type SendDebuggerCommand = (message: string, data?: any) => Bluebird<any>
+type SendDebuggerCommand = (message: string, data?: any, sessionId?: string) => Bluebird<any>
 
 export const _domainIsWithinSuperdomain = (domain: string, suffix: string) => {
   const suffixParts = suffix.split('.').filter(_.identity)
@@ -189,7 +189,7 @@ export const CdpAutomation = (sendDebuggerCommandFn: SendDebuggerCommand) => {
       case 'is:automation:client:connected':
         return true
       case 'remote:debugger:protocol':
-        return sendDebuggerCommandFn(data.command, data.params)
+        return sendDebuggerCommandFn(data.command, data.params, data.sessionId)
       case 'take:screenshot':
         return sendDebuggerCommandFn('Page.captureScreenshot', { format: 'png' })
         .catch((err) => {

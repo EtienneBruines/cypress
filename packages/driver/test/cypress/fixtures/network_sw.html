@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Fixture</title>
+</head>
+<body>
+<p>
+    We are currently <span id="network-status"></span>.
+</p>
+<button id="test-network">test-network</button>
+<button id="test-reset">reset-test</button>
+<p>
+    The network-request was <span id="network-request"></span>.
+</p>
+<p>
+    The service-worker ping was <span id="network-ping"></span>.
+</p>
+<script>
+window.addEventListener('offline', function () { document.getElementById('network-status').innerText = 'offline' })
+window.addEventListener('online', function () {document.getElementById('network-status').innerText = 'online' })
+document.getElementById('network-status').innerText = window.navigator.onLine ? 'online' : 'offline'
+
+navigator.serviceWorker.register('./network_sw.js', {
+  scope: './'
+}).then(reg => {
+  document.querySelector('body').setAttribute('data-registered', '')
+  if (reg.active) {
+    document.querySelector('body').setAttribute('data-active', '')
+  }
+})
+
+document.getElementById('test-network').addEventListener('click', () => {
+  fetch('./network_sw.html')
+    .then(() => {
+      document.getElementById('network-request').innerText = 'online'
+    })
+    .catch(() => {
+      document.getElementById('network-request').innerText = 'offline'
+    })
+
+  fetch('./network_sw.html?ping')
+    .then(() => {
+      document.getElementById('network-ping').innerText = 'online'
+    })
+    .catch(() => {
+      document.getElementById('network-ping').innerText = 'offline'
+    })
+})
+
+document.getElementById('test-reset').addEventListener('click', () => {
+  document.getElementById('network-request').innerText = ''
+  document.getElementById('network-ping').innerText = ''
+})
+</script>
+</body>
+</html>

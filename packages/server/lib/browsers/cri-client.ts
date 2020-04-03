@@ -52,7 +52,7 @@ interface CRIWrapper {
    * Sends a command to the Chrome remote interface.
    * @example client.send('Page.navigate', { url })
   */
-  send (command: CRI.Command, params?: object): Bluebird<any>
+  send (command: CRI.Command, params?: object, sessionId?: string): Bluebird<any>
   /**
    * Registers callback for particular event.
    * @see https://github.com/cyrus-and/chrome-remote-interface#class-cdp
